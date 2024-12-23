@@ -1,0 +1,14 @@
+<launch>
+    <arg name="config_file" default = "/home/fjg/test/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/config/L515_config.yaml" />
+
+
+    <node name="rogio_threads" pkg="rogio_threads" type="rogio_threads" output="screen">
+        <param name="config_file" type="string" value="$(arg config_file)" />
+
+    </node>
+
+    <node pkg="tf" type="static_transform_publisher" name="map2world" args="0 0 0 0 0 0 1 map world 30" />
+
+    <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d /home/fjg/test/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/launch/raw_vis.rviz" />
+
+</launch>

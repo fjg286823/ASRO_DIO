@@ -1,0 +1,2 @@
+ROGIO-ROS-threads:cv_bridge:stream_shower
+-DCATKIN_DEVEL_PREFIX=/home/fjg/work/catkin_dio/catkin_dio/devel -DCMAKE_INSTALL_PREFIX=/home/fjg/work/catkin_dio/catkin_dio/install -G Unix Makefiles

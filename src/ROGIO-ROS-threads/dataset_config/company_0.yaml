@@ -1,0 +1,12 @@
+%YAML:1.0
+name: company_0
+seq_path: /media/jiazhao/Jiazhao_BACKUP/capture_benchmark_v1_seq/company_0.seq
+result_path: /media/jiazhao/Jiazhao_BACKUP/capture_benchmark_v1_result/
+voxel_size: 25
+truncated_size: 60
+voxel_x: 1112
+voxel_y: 412
+voxel_z: 612
+init_x: 2000
+init_y: 0
+init_z: -500

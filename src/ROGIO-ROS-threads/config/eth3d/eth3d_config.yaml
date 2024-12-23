@@ -1,0 +1,76 @@
+%YAML:1.0
+
+#common parameters
+#imu_topic: "/IMU/imu_raw"
+#image_topic: "/rgb/image_raw"
+#depth_topic: "/depth/image_raw"
+
+imu_topic: "/uvc_camera/cam_1/imu"
+image_topic: "/uvc_camera/cam_1/image_raw"
+depth_topic: "/uvc_camera/cam_3/image_raw"
+
+
+result_path: "/home/jiazhao/code/rosefusion-imu/build/eth3d/"
+name: camera_shake_3
+
+
+
+camera_name: camera
+image_width: 739
+image_height: 458
+
+
+distortion_parameters:
+   k1: 0
+   k2: 0
+   p1: 0
+   p2: 0
+projection_parameters:
+   fx: 726.28741455078
+   fy: 726.28741455078
+   cx: 354.6496887207
+   cy: 186.46566772461
+
+
+extrinsicRotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [  -0.99988918, 0.0148572, -0.00094212, 
+            -0.0148606, -0.99988268, 0.00371296,
+            -0.00088685, 0.00372655, 0.99999266]    
+#Translation from camera frame to imu frame, imu^T_cam
+extrinsicTranslation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [0.00368267, 0.00796682, -0.00133201]
+
+
+#Volume parameters
+
+voxel_size: 10
+truncated_size: 60
+voxel_x: 812
+voxel_y: 500
+voxel_z: 812
+
+init_x: 0
+init_y: 0
+init_z: 1000
+
+#Controller parameters
+render_surface: 1
+PST_path: "/home/javens/Workspace/catkin_dio/src/PST"
+save_trajectory: 1
+save_scene: 1
+
+max_iteration: 23
+scaling_coefficient1: 0.22
+scaling_coefficient2: 0.12
+init_fitness: 0.6
+momentum: 0.9
+scaling_inherit_directly: 0
+
+
+

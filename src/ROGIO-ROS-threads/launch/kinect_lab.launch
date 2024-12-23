@@ -1,0 +1,14 @@
+<launch>
+    <arg name="config_file" default = "/home/javens/Workspace/catkin_dio/src/ROGIO-ROS-threads/config/Kinect_lab_config.yaml" />
+
+
+    <node name="rogio_threads" pkg="rogio_threads" type="rogio_threads" output="screen">
+        <param name="config_file" type="string" value="$(arg config_file)" />
+
+    </node>
+
+    <node pkg="tf" type="static_transform_publisher" name="map2world" args="0 0 0 0.707 0 0 0.707 map world 30"/>
+
+    <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d /home/javens/Workspace/catkin_dio/src/ROGIO-ROS-threads/config/raw_vis.rviz" />
+
+</launch>

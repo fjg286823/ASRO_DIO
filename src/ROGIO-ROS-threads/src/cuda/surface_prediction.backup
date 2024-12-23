@@ -1,0 +1,313 @@
+// Predicts the surface, i.e. performs raycasting
+// This is CUDA code; compile with nvcc
+// Author: Christian Diller, git@christian-diller.de
+
+#include "include/common.h"
+#include <iostream>
+using Vec3ida = Eigen::Matrix<int, 3, 1, Eigen::DontAlign>;
+
+namespace kinectfusion {
+    namespace internal {
+        namespace cuda {
+
+            __device__ __forceinline__
+            float interpolate_trilinearly(const Vec3fda& point, const PtrStepSz<short>& tsdf_volume,
+                                          const int3& volume_size, const float voxel_scale)
+            {
+                Vec3ida point_in_grid = point.cast<int>();
+
+                const float vx = (static_cast<float>(point_in_grid.x()) + 0.5f);
+                const float vy = (static_cast<float>(point_in_grid.y()) + 0.5f);
+                const float vz = (static_cast<float>(point_in_grid.z()) + 0.5f);
+
+                point_in_grid.x() = (point.x() < vx) ? (point_in_grid.x() - 1) : point_in_grid.x();
+                point_in_grid.y() = (point.y() < vy) ? (point_in_grid.y() - 1) : point_in_grid.y();
+                point_in_grid.z() = (point.z() < vz) ? (point_in_grid.z() - 1) : point_in_grid.z();
+
+                const float a = (point.x() - (static_cast<float>(point_in_grid.x()) + 0.5f));
+                const float b = (point.y() - (static_cast<float>(point_in_grid.y()) + 0.5f));
+                const float c = (point.z() - (static_cast<float>(point_in_grid.z()) + 0.5f));
+
+                return static_cast<float>(tsdf_volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y())[point_in_grid.x()]) * DIVSHORTMAX * (1 - a) * (1 - b) * (1 - c) +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y())[point_in_grid.x()]) * DIVSHORTMAX * (1 - a) * (1 - b) * c +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x()]) * DIVSHORTMAX * (1 - a) * b * (1 - c) +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x()]) * DIVSHORTMAX * (1 - a) * b * c +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y())[point_in_grid.x() + 1]) * DIVSHORTMAX * a * (1 - b) * (1 - c) +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y())[point_in_grid.x() + 1]) * DIVSHORTMAX * a * (1 - b) * c +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x() + 1]) * DIVSHORTMAX * a * b * (1 - c) +
+                       static_cast<float>(tsdf_volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x() + 1]) * DIVSHORTMAX * a * b * c;
+            }
+
+
+            __device__ __forceinline__
+            float get_min_time(const float3& volume_max, const Vec3fda& origin, const Vec3fda& direction)
+            {
+                float txmin = ((direction.x() > 0 ? 0.f : volume_max.x) - origin.x()) / direction.x();
+                float tymin = ((direction.y() > 0 ? 0.f : volume_max.y) - origin.y()) / direction.y();
+                float tzmin = ((direction.z() > 0 ? 0.f : volume_max.z) - origin.z()) / direction.z();
+
+                return fmax(fmax(txmin, tymin), tzmin);
+            }
+
+            __device__ __forceinline__
+            float get_max_time(const float3& volume_max, const Vec3fda& origin, const Vec3fda& direction)
+            {
+                float txmax = ((direction.x() > 0 ? volume_max.x : 0.f) - origin.x()) / direction.x();
+                float tymax = ((direction.y() > 0 ? volume_max.y : 0.f) - origin.y()) / direction.y();
+                float tzmax = ((direction.z() > 0 ? volume_max.z : 0.f) - origin.z()) / direction.z();
+
+                return fmin(fmin(txmax, tymax), tzmax);
+            }
+
+            __global__
+            void raycast_tsdf_kernel(const PtrStepSz<short> tsdf_volume, const PtrStepSz<uchar3> color_volume,
+                                     PtrStepSz<float3> model_vertex, PtrStepSz<float3> model_normal,
+                                     PtrStepSz<uchar3> model_color, PtrStepSz<uchar3> shadde_buffer,
+                                     const int3 volume_size, const float voxel_scale,
+                                     const CameraParameters cam_parameters,
+                                     const float truncation_distance,
+                                     const Eigen::Matrix<float, 3, 3, Eigen::DontAlign> rotation,
+                                     const Vec3fda translation)
+            {
+                const int x = blockIdx.x * blockDim.x + threadIdx.x;
+                const int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+                if (x >= model_vertex.cols || y >= model_vertex.rows)
+                    return;
+
+                const float3 volume_range = make_float3(volume_size.x * voxel_scale,
+                                                        volume_size.y * voxel_scale,
+                                                        volume_size.z * voxel_scale);
+
+                const Vec3fda pixel_position(
+                        (x - cam_parameters.principal_x) / cam_parameters.focal_x,
+                        (y - cam_parameters.principal_y) / cam_parameters.focal_y,
+                        1.f);
+
+                Vec3fda ray_direction = (rotation * pixel_position);
+                ray_direction.normalize();
+
+                float ray_length = fmax(get_min_time(volume_range, translation, ray_direction), 0.f);
+                if (ray_length >= get_max_time(volume_range, translation, ray_direction))
+                    return;
+
+                ray_length += voxel_scale;
+                Vec3fda grid = (translation + (ray_direction * ray_length)) / voxel_scale;
+
+                float tsdf = static_cast<float>(tsdf_volume.ptr(
+                        __float2int_rd(grid(2)) * volume_size.y + __float2int_rd(grid(1)))[__float2int_rd(grid(0))]) *
+                             DIVSHORTMAX;
+
+                const float max_search_length = ray_length + volume_range.x * sqrt(2.f);
+                for (; ray_length < max_search_length; ray_length += truncation_distance * 0.5f) {
+                    grid = ((translation + (ray_direction * (ray_length + truncation_distance * 0.5f))) / voxel_scale);
+
+                    if (grid.x() < 1 || grid.x() >= volume_size.x - 1 || grid.y() < 1 ||
+                        grid.y() >= volume_size.y - 1 ||
+                        grid.z() < 1 || grid.z() >= volume_size.z - 1)
+                        continue;
+
+                    const float previous_tsdf = tsdf;
+                    tsdf = static_cast<float>(tsdf_volume.ptr(
+                            __float2int_rd(grid(2)) * volume_size.y + __float2int_rd(grid(1)))[__float2int_rd(
+                            grid(0))]) *
+                           DIVSHORTMAX;
+
+                    if (previous_tsdf < 0.f && tsdf > 0.f) //Zero crossing from behind
+                        break;
+                    if (previous_tsdf > 0.f && tsdf < 0.f) { //Zero crossing
+                        const float t_star =
+                                ray_length - truncation_distance * 0.5f * previous_tsdf / (tsdf - previous_tsdf);
+
+                        const auto vertex = translation + ray_direction * t_star;
+
+                        const Vec3fda location_in_grid = (vertex / voxel_scale);
+                        if (location_in_grid.x() < 1 | location_in_grid.x() >= volume_size.x - 1 ||
+                            location_in_grid.y() < 1 || location_in_grid.y() >= volume_size.y - 1 ||
+                            location_in_grid.z() < 1 || location_in_grid.z() >= volume_size.z - 1)
+                            break;
+
+                        Vec3fda normal, shifted;
+
+                        shifted = location_in_grid;
+                        shifted.x() += 1;
+                        if (shifted.x() >= volume_size.x - 1)
+                            break;
+                        const float Fx1 = interpolate_trilinearly(shifted, tsdf_volume, volume_size, voxel_scale);
+
+                        shifted = location_in_grid;
+                        shifted.x() -= 1;
+                        if (shifted.x() < 1)
+                            break;
+                        const float Fx2 = interpolate_trilinearly(shifted, tsdf_volume, volume_size, voxel_scale);
+
+                        normal.x() = (Fx1 - Fx2);
+
+                        shifted = location_in_grid;
+                        shifted.y() += 1;
+                        if (shifted.y() >= volume_size.y - 1)
+                            break;
+                        const float Fy1 = interpolate_trilinearly(shifted, tsdf_volume, volume_size, voxel_scale);
+
+                        shifted = location_in_grid;
+                        shifted.y() -= 1;
+                        if (shifted.y() < 1)
+                            break;
+                        const float Fy2 = interpolate_trilinearly(shifted, tsdf_volume, volume_size, voxel_scale);
+
+                        normal.y() = (Fy1 - Fy2);
+
+                        shifted = location_in_grid;
+                        shifted.z() += 1;
+                        if (shifted.z() >= volume_size.z - 1)
+                            break;
+                        const float Fz1 = interpolate_trilinearly(shifted, tsdf_volume, volume_size, voxel_scale);
+
+                        shifted = location_in_grid;
+                        shifted.z() -= 1;
+                        if (shifted.z() < 1)
+                            break;
+                        const float Fz2 = interpolate_trilinearly(shifted, tsdf_volume, volume_size, voxel_scale);
+
+                        normal.z() = (Fz1 - Fz2);
+
+                        if (normal.norm() == 0)
+                            break;
+
+                        normal.normalize();
+
+                        model_vertex.ptr(y)[x] = make_float3(vertex.x(), vertex.y(), vertex.z());
+                        model_normal.ptr(y)[x] = make_float3(normal.x(), normal.y(), normal.z());
+
+                        auto location_in_grid_int = location_in_grid.cast<int>();
+                        model_color.ptr(y)[x] = color_volume.ptr(
+                                location_in_grid_int.z() * volume_size.y +
+                                location_in_grid_int.y())[location_in_grid_int.x()];
+
+                            
+                        float result_x=vertex.x();
+                        float result_y=vertex.y();
+                        float result_z=vertex.z();
+
+                        float normal_x=normal.x();
+                        float normal_y=normal.y();
+                        float normal_z=normal.z();
+
+                        float ka_x=0.005;
+                        float ka_y=0.005;
+                        float ka_z=0.005;
+                
+                        float kd_x=98./255;
+                        float kd_y=121./255;
+                        float kd_z=148./255;
+                
+                        float light_position_x=4940;
+                        float light_position_y=4477;
+                        float light_position_z=3165;
+
+                        float eye_position_x=translation.x();
+                        float eye_position_y=translation.y();
+                        float eye_position_z=translation.z();
+                        float amb_light_intensity=10;
+                        float light_intensity=800000*2;
+                
+                        float sqr_r=pow(light_position_x-result_x,2)+pow(light_position_y-result_y,2)+pow(light_position_z-result_z,2);
+                        //eye_pose_direction
+                        float eye_pose_direction_x=eye_position_x-result_x;
+                        float eye_pose_direction_y=eye_position_y-result_y;
+                        float eye_pose_direction_z=eye_position_z-result_z;
+                        float lens=sqrt(pow(eye_pose_direction_x,2)+pow(eye_pose_direction_y,2)+pow(eye_pose_direction_z,2));
+                        eye_pose_direction_x/=lens;
+                        eye_pose_direction_y/=lens;
+                        eye_pose_direction_z/=lens;
+                
+                        //light_direciton
+                        float light_direction_x=light_position_x-result_x;
+                        float light_direction_y=light_position_y-result_y;
+                        float light_direction_z=light_position_z-result_z;
+                        lens=sqrt(pow(light_direction_x,2)+pow(light_direction_y,2)+pow(light_direction_z,2));
+                        light_direction_x/=lens;
+                        light_direction_y/=lens;
+                        light_direction_z/=lens;     
+                        
+                        //ambinent_light
+                        float ambinent_light_x=ka_x*amb_light_intensity;
+                        float ambinent_light_y=ka_y*amb_light_intensity;
+                        float ambinent_light_z=ka_z*amb_light_intensity;
+                
+                        //light cos
+                        float light_cos=normal_x*light_direction_x + normal_y*light_direction_y + normal_z*light_direction_z;
+                        if (light_cos<=0){
+                            light_cos=0;
+                        }
+                
+                        //diffuse_light
+                        float light_coffi=light_intensity/sqr_r*light_cos;
+                        float diffuse_light_x=kd_x*light_coffi;
+                        float diffuse_light_y=kd_y*light_coffi;
+                        float diffuse_light_z=kd_z*light_coffi;
+                        //printf("%f %f %f %f\\n",kd_x,light_coffi,light_cos,diffuse_light_x);
+                
+                        //h bisector
+                        float h_x=light_direction_x+eye_pose_direction_x;
+                        float h_y=light_direction_y+eye_pose_direction_y;
+                        float h_z=light_direction_z+eye_pose_direction_z;
+                        lens=sqrt(pow(h_x,2)+pow(h_y,2)+pow(h_z,2));
+                        h_x/=lens;
+                        h_y/=lens;
+                        h_z/=lens;  
+                        float h_cos=normal_x*h_x + normal_y*h_y + normal_z*h_z;
+                        if (h_cos<0){
+                            h_cos=0;
+                        }
+                
+                        //specular light
+                        light_coffi=light_intensity/sqr_r*pow(h_cos,50);
+
+                        float specular_light_x=0.5*light_coffi;
+                        float specular_light_y=0.5*light_coffi;
+                        float specular_light_z=0.5*light_coffi;
+             
+
+                        shadde_buffer.ptr(y)[x].x = static_cast<uchar>((ambinent_light_x+diffuse_light_x+specular_light_x)*255);
+                        shadde_buffer.ptr(y)[x].y = static_cast<uchar>((ambinent_light_y+diffuse_light_y+specular_light_y)*255);
+                        shadde_buffer.ptr(y)[x].z = static_cast<uchar>((ambinent_light_z+diffuse_light_z+specular_light_z)*255);                       
+                        
+
+
+
+                        break;
+                    }
+                }
+            }
+
+            void surface_prediction(const VolumeData& volume,
+                                    GpuMat& model_vertex, GpuMat& model_normal, GpuMat& model_color,
+                                    const CameraParameters& cam_parameters,
+                                    const float truncation_distance,
+                                    cv::Mat& shaded_img,
+                                    const Eigen::Matrix4d& pose)
+            {
+                // model_vertex.setTo(0);
+                // model_normal.setTo(0);
+                // model_color.setTo(0);
+                
+                dim3 threads(32, 32);
+                dim3 blocks((model_vertex.cols + threads.x - 1) / threads.x,
+                            (model_vertex.rows + threads.y - 1) / threads.y);
+                printf("xxxx");
+                cv::cuda::GpuMat shadde_buffer{ cv::cuda::createContinuous(cam_parameters.image_height, cam_parameters.image_width, CV_8UC3) };
+
+                raycast_tsdf_kernel<<<blocks, threads>>>(volume.tsdf_volume, volume.color_volume,
+                        model_vertex, model_normal, model_color,shadde_buffer,
+                        volume.volume_size, volume.voxel_scale,
+                        cam_parameters,
+                        truncation_distance,
+                        pose.block(0, 0, 3, 3).cast<float>(), pose.block(0, 3, 3, 1).cast<float>());
+                shadde_buffer.download(shaded_img);
+                // std::cout<<shaded_img<<std::endl;
+                cudaThreadSynchronize();
+            }
+        }
+    }
+}

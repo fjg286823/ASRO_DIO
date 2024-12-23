@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/opt/ros/noetic/include/**",
+        "/home/fjg/test/catkin_dio/catkin_dio/src/Azure_Kinect_ROS_Driver-melodic/include/**",
+        "/home/fjg/test/catkin_dio/catkin_dio/src/cv_bridge/include/**",
+        "/home/fjg/test/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/include/**",
+        "/home/fjg/test/catkin_dio/catkin_dio/src/stream_shower/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

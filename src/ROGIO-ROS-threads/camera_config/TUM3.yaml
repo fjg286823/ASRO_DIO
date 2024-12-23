@@ -1,0 +1,21 @@
+%YAML:1.0
+
+# ======================================================================================================== #
+# camera fr1
+# ======================================================================================================== #
+
+Camera.fx: 535.4
+Camera.fy: 539.2
+Camera.cx: 320.1
+Camera.cy: 247.6
+
+Camera.k1: 0
+Camera.k2: 0
+Camera.k3: 0
+Camera.k4: 0
+Camera.k5: 0
+
+Camera.width: 640
+Camera.height: 480
+
+Camera.undistort: 0 #1 undistort 0 no need for undistort

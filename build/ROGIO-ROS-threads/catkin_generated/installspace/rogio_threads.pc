@@ -1,0 +1,8 @@
+prefix=/home/fjg/work/catkin_dio/catkin_dio/install
+
+Name: rogio_threads
+Description: Description of rogio_threads
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

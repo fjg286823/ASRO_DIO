@@ -1,0 +1,20 @@
+%YAML:1.0
+# ======================================================================================================== #
+# camera ICL NYUIM
+# ======================================================================================================== #
+Camera.fx: 591.5435
+Camera.fy: 594.3042
+Camera.cx: 640.5155
+Camera.cy: 361.4145
+
+Camera.k1: .0
+Camera.k2: .0
+Camera.k3: .0
+Camera.k4: .0
+Camera.k5: .0
+
+Camera.width: 1280
+Camera.height: 720
+
+Camera.undistort: false #1 undistort 0 no need for undistort
+

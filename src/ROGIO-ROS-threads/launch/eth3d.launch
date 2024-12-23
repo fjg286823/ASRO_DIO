@@ -1,0 +1,12 @@
+<launch>
+    <arg name="config" default = "$(find rogio)/config/eth3d/eth3d_config.yaml" />
+
+
+    <node name="rogio" pkg="rogio" type="rogio" output="screen">
+        <param name="config_file" type="string" value="$(arg config)" />
+
+    </node>
+
+
+
+</launch>

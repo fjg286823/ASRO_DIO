@@ -1,0 +1,25 @@
+%YAML:1.0
+
+  # ======================================================================================================== #
+  # room kt2
+  # ======================================================================================================== #
+
+dir: "/home/jiazhao/workspace/Pykinfu/ICL_NUIM_dataset/living_room_traj3n_frei_png/"
+color_path: "rgb/"
+depth_path: "depth/"
+gt: "groundtruth.txt"
+associations: "associations.txt"
+associations_gt: "livingRoom3n.gt.freiburg"
+result_path: "ICL_NUIM_result/"
+
+# size of mm
+voxel_size: 15
+truncated_size: 60
+voxel_x: 512
+voxel_y: 512
+voxel_z: 512
+
+#init depth
+init_x: 0
+init_y: 0
+init_z: 1000

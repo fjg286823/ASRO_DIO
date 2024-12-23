@@ -1,0 +1,25 @@
+%YAML:1.0
+
+  # ======================================================================================================== #
+  # dataset fr1 xyz
+  # ======================================================================================================== #
+
+dir: "/home/jiazhao/workspace/Pykinfu/tum_dataset/rgbd_dataset_freiburg1_xyz/"
+color_path: "color/"
+depth_path: "depth/"
+gt: "groundtruth.txt"
+associations: "associations.txt"
+associations_gt: "associate_with_groundtruth.txt"
+result_path: "TUM_result/"
+
+vol_bnds.up.x: 4
+vol_bnds.down.x: -3
+
+vol_bnds.up.y: 3
+vol_bnds.down.y: -3
+
+vol_bnds.up.z: 3.5
+vol_bnds.down.z: -3
+
+voxel_size: 0.01
+truncated_size: 0.03

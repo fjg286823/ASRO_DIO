@@ -1,0 +1,27 @@
+%YAML:1.0
+
+  # ======================================================================================================== #
+  # room kt2
+  # ======================================================================================================== #
+
+dir: "/media/jiazhao/jiazhao/replica_selfmade/apartment_1_+_10_26_19_24/synthesis_5/"
+color_path: "color_blur/"
+depth_path: "depth_noise/"
+# gt: "groundtruth.txt"
+associations: "associations_noise.txt"
+# associations_gt: "livingRoom2.gt.freiburg"
+result_path: "kinect_result/"
+
+
+vol_bnds.up.x: 4
+vol_bnds.down.x: -3
+
+vol_bnds.up.y: 2
+vol_bnds.down.y: -2
+
+vol_bnds.up.z: 4
+vol_bnds.down.z: -3
+
+voxel_size: 0.02
+truncated_size: 0.06
+

@@ -1,0 +1,25 @@
+# ninja log v6
+75	24227	1734591056310629811	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_prediction.cu.o	95fd724aa8c565b7
+36519	48456	1734591068610292586	CMakeFiles/rogio_threads_lib.dir/src/main.cpp.o	89ed36756a418b75
+74	22587	1734591054670674916	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_measurement.cu.o	118474af8dc28db
+22633	36518	1734591068602292804	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_reconstruction.cu.o	ef6658dfe3036f61
+73	26088	1734591058170578695	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_gravity_estimation.cu.o	817032d4c86117cf
+73	27691	1734591059774534651	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_pose_estimation.cu.o	28e1348559cb15dc
+36519	45211	1734591068610292586	CMakeFiles/rogio_threads_lib.dir/src/rosefusion.cpp.o	6000591e5f5c4d7c
+36518	44977	1734591068606292695	CMakeFiles/rogio_threads_lib.dir/src/gravity_estimation.cpp.o	8560462c110a6318
+1280	24992	1734591057078608699	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_prediction_phong_shading.cu.o	a3ae79b79627fea6
+73	22855	1734591054938667542	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_extract_pointcloud.cu.o	b39b2d8aa44a41e3
+22633	36518	1734591068602292804	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_reconstruction.cu.o	ef6658dfe3036f61
+36519	43069	1734591068610292586	CMakeFiles/rogio_threads_lib.dir/src/surface_measurement.cpp.o	a67b83aacb734ae8
+48458	48485	1734591080545967104	devel/lib/librogio_threads_lib.a	c81506586dd8783e
+1280	24992	1734591057078608699	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_prediction_phong_shading.cu.o	a3ae79b79627fea6
+48485	49234	1734591080573966341	devel/lib/rogio_threads/rogio_threads	450bf6e36d1e79db
+73	22855	1734591054938667542	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_extract_pointcloud.cu.o	b39b2d8aa44a41e3
+36519	48474	1734591068610292586	CMakeFiles/rogio_threads.dir/src/main.cpp.o	b80f4e8a3d2fa9fc
+74	22587	1734591054670674916	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_measurement.cu.o	118474af8dc28db
+74	1280	1734591033367263938	CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_pose_estimation_reduce.cu.o	1123ba052d3d4b2c
+36519	43174	1734591068610292586	CMakeFiles/rogio_threads_lib.dir/src/pose_estimation.cpp.o	174d9c646db0271d
+73	26088	1734591058170578695	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_gravity_estimation.cu.o	817032d4c86117cf
+74	1280	1734591033367263938	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_pose_estimation_reduce.cu.o	1123ba052d3d4b2c
+75	24227	1734591056310629811	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_surface_prediction.cu.o	95fd724aa8c565b7
+73	27691	1734591059774534651	/home/fjg/work/catkin_dio/catkin_dio/src/ROGIO-ROS-threads/cmake-build-release/CMakeFiles/rogio_threads_lib.dir/src/cuda/rogio_threads_lib_generated_pose_estimation.cu.o	28e1348559cb15dc

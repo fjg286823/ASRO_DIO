@@ -1,0 +1,8 @@
+prefix=/home/fjg/work/catkin_dio/catkin_dio/install
+
+Name: stream_shower
+Description: Description of stream_shower
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

@@ -1,0 +1,27 @@
+%YAML:1.0
+
+  # ======================================================================================================== #
+  # room kt2
+  # ======================================================================================================== #
+
+dir: "/home/jiazhao/data/record_reconstrunction_data/apt1/"
+color_path: "color/"
+depth_path: "depth/"
+# gt: "groundtruth.txt"
+associations: "associations.txt"
+# associations_gt: "livingRoom2.gt.freiburg"
+result_path: "kinect_result/"
+
+
+vol_bnds.up.x: 4
+vol_bnds.down.x: -3
+
+vol_bnds.up.y: 2
+vol_bnds.down.y: -2
+
+vol_bnds.up.z: 4
+vol_bnds.down.z: -3
+
+voxel_size: 0.02
+truncated_size: 0.06
+

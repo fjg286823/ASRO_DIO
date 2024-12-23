@@ -1,0 +1,304 @@
+// This is the CPU part of the ICP implementation
+// Author: Christian Diller, git@christian-diller.de
+
+#include <kinectfusion.h>
+#include <iostream>
+#include <queue>
+using Matf31da = Eigen::Matrix<double, 3, 1, Eigen::DontAlign>;
+using Matf61da = Eigen::Matrix<double, 6, 1, Eigen::DontAlign>;
+using Matrix3frm = Eigen::Matrix<double, 3, 3, Eigen::RowMajor>;
+
+
+namespace kinectfusion {
+    namespace internal {
+
+        namespace cuda { // Forward declare CUDA functions
+            void estimate_step(const Eigen::Matrix3f& rotation_current, const Matf31da& translation_current,
+                               const cv::cuda::GpuMat& vertex_map_current, const cv::cuda::GpuMat& normal_map_current,
+                               const Eigen::Matrix3f& rotation_previous_inv, const Matf31da& translation_previous,
+                               const CameraParameters& cam_params,
+                               const cv::cuda::GpuMat& vertex_map_previous, const cv::cuda::GpuMat& normal_map_previous,
+                               float distance_threshold, float angle_threshold,
+                               Eigen::Matrix<double, 6, 6, Eigen::RowMajor>& A, Eigen::Matrix<double, 6, 1>& b);
+
+            bool particle_evaluation(const VolumeData& volume,const QuaternionData& quaterinons, SearchData& search_data ,
+                                const Eigen::Matrix3d& rotation_current, const Matf31da& translation_current,
+                                const cv::cuda::GpuMat& vertex_map_current, const cv::cuda::GpuMat& normal_map_current,
+                                const Eigen::Matrix3d& rotation_previous_inv, const Matf31da& translation_previous,
+                                const CameraParameters& cam_params, const int particle_index,const int particle_size,
+                                const Matf61da& search_size,const int resolution_level,const int level_index,
+                                Eigen::Matrix<double, 7, 1>& mean_transform, float * tsdf
+                                );
+        }
+
+ 
+
+        bool pose_estimation(const VolumeData& volume,
+                             const QuaternionData& quaternions,
+                              SearchData& search_data,
+                             Eigen::Matrix4d& pose,
+                             const FrameData& frame_data,
+                             const CameraParameters& cam_params,
+                             const std::vector<int> particle_level, 
+                             float * iter_tsdf                            )
+        {   
+            // std::cout.precision(10);
+            // Get initial rotation and translation
+            Eigen::Matrix3d current_global_rotation = pose.block(0, 0, 3, 3);
+            Eigen::Vector3d current_global_translation = pose.block(0, 3, 3, 1);
+            Eigen::Matrix3d previous_global_rotation_inverse(current_global_rotation.inverse());
+            Eigen::Vector3d previous_global_translation = pose.block(0, 3, 3, 1);
+
+
+            // if (frame_id==100){
+            //     current_global_translation.x()=current_global_translation.x()+200;
+            //     previous_global_translation.x()=previous_global_translation.x()+200;
+            // }
+
+            // std::cout<<previous_global_rotation_inverse<<std::endl;
+            // std::cout<<previous_global_translation<<std::endl;
+            printf("===============NEW FRAME=====================\n");
+            // float lens=0.1195 * pow(*iter_tsdf,1.431);
+
+            // float lens= 0.3595 * pow(*iter_tsdf,1.431);
+            float lens= 0.18*(*iter_tsdf);
+            Matf61da search_size;
+            // search_size<< lens, lens, lens, lens*0.5, lens*0.5, lens*0.5;
+            // search_size<< lens, lens, lens, lens*0.78, lens*0.78, lens*0.78;
+            // search_size<< lens, lens, lens, lens*0.78, lens*0.78, lens*0.78;
+            search_size<< lens, lens, lens, lens, lens, lens;
+
+            // std::cout<<"iter tsdf"<<*iter_tsdf<<"search size "<<search_size;
+
+
+            // int particle_size[6] ={10240,10240,6144,6144,6144,2048};
+            // int particle_size[6] ={10240,10240,10240,10240,10240,10240};
+            // int particle_index[7] ={0,0,0,0,1,1,2};
+            // int particle_index[8] ={0,0,1,1,1,1,2,2};
+            // int particle_index[8] ={0,0,1,1,2,2,2,2};
+
+            // int level[8] = {8,8,8,8,8,8,8,8};
+            // int particle_index[15] ={2,1,2,0,1,2,0,1,2,0,1,2,0,1,2};
+            // int particle_index[20] ={0,1,1,2,2,1,1,2,2,1,1,2,2,1,1,2,2,1,1,1};
+            // int particle_index[20] ={0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1};
+            // int particle_index[20] ={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+            // int particle_index[20] ={1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+            // int particle_index[20] ={2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2};
+            // int particle_index[20] ={0,1+20,2+20,3+40,4+40,5+20,6+20,7+40,8+40,
+            //                         9+20,10+20,11+40,12+40,13+20,14+20,15+40,16+40,
+            //                         17+20,18+20,19+20};
+            int particle_index[20] ={0,1+20,2+40,3,4+20,5+40,6+0,7+20,8+40,
+                                    9+0,10+20,11+40,12+0,13+20,14+40,
+                                    15+0,16+20,17+40,18+0,19+20};
+
+
+            // int particle_index[20] ={0,21,42,0,21,42,0,21,42,0,21,42,0,21,42,0,21,42,0,21};
+
+
+            // int particle_index[20] ={2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2};
+            // int particle_index[20] ={0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1};
+
+            int level[20] = {32,16,8,32,16,8,32,16,8,32,16,8,32,16,8,32,16,8,32,16};
+            // int level[20] = {32,16,16,8,8,16,16,8,8,16,16,8,8,16,16,8,8,16,16,16};
+            // int level[20] = {8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8};
+
+            // int level[20] = {32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32};
+
+            // int particle_index[6] ={0,0,1,1,2,2};
+            // int level[6] = {32,32,16,16,16,8};
+            // int level[8] = {32,32,32,32,32,16,16,8};
+            // int level[6] = {16,16,16,16,16,16};
+
+            int count_particle=0;
+            // int level=16;
+            int level_index=5;
+            bool success=true;
+            int count=0;
+            int count_success=0;
+            float min_tsdf=1;
+
+            bool rough_search=true;
+            bool fine_search=true;
+            float ratio=1;
+
+
+            while(true){
+                // printf("====================NEW ITERATION=======================\n");
+                Eigen::Matrix<double, 7, 1> mean_transform=Eigen::Matrix<double, 7, 1>::Zero();
+                // printf("particle size:%d\n",particle_level[particle_index[count_particle]]);
+                // printf("level :%d\n",level_index);
+                // std::cout<<rough_search <<"  "<<fine_search<<"  "<<success<<std::endl;
+                // if (!rough_search && !fine_search){
+                //     break;
+                // }else if(count==23){
+                //     break;
+                // }
+                // level_index=1;
+                if(count==23){
+                    break;
+                }
+                clock_t time_1=clock();
+                if (!success){
+                    count_particle=0;
+                }
+                success=cuda::particle_evaluation(volume,quaternions,search_data,current_global_rotation, current_global_translation,
+                                    frame_data.vertex_pyramid[0], frame_data.normal_pyramid[0],
+                                    previous_global_rotation_inverse, previous_global_translation,
+                                    cam_params,particle_index[count_particle],particle_level[particle_index[count_particle]/20],
+                                    search_size,level[count_particle],level_index,
+                                    mean_transform,&min_tsdf); 
+                std::cout <<"===paricle evaluation"<<1000*(clock()-time_1)/(double)CLOCKS_PER_SEC<<"ms"<<std::endl;
+                    
+                printf("min tsdf:%f\n",min_tsdf);
+                // std::cout<<"mean transform:"<<mean_transform<<std::endl;
+                // if (!success && count>0){
+                    // break;
+                // } 
+                time_1=clock();
+
+                if (count==0 && !success)
+                {
+                    *iter_tsdf=min_tsdf;
+                }
+                
+                
+                
+                // std::cout<<mean_transform;
+                // auto quaternion_incremental = mean_transform.tail<3>();
+
+
+                double qx=mean_transform(4,0);
+                double qy=mean_transform(5,0);
+                double qz=mean_transform(6,0);
+                if (success){
+                    if (count_particle<19){
+                        ++count_particle;
+                        // particle_size=(int)ceil(particle_size/2);
+                        // level-=4;
+                    }
+                    ++count_success;
+                    // std::cout<<"mean transform"<<mean_transform<<std::endl;
+                    auto camera_translation_incremental = mean_transform.head<3>();
+                    double qw=mean_transform(3,0);
+                    Eigen::Matrix3d camera_rotation_incremental;
+                    // printf("qw: %lf \n",qw);
+                    // if (fabs(1.f-qw)<1e-6){
+                    //     printf("error: %lf \n",fabs(1.0-qw));
+
+                    //     camera_rotation_incremental<<1.0,0,0,0,1,0,0,0,1;
+                    // }else{
+                    camera_rotation_incremental << 1-2*(qy*qy+qz*qz), 2*(qx*qy-qz*qw), 2*(qx*qz+qy*qw),
+                                                    2*(qx*qy+qz*qw), 1-2*(qx*qx+qz*qz), 2*(qy*qz-qx*qw),
+                                                    2*(qx*qz-qy*qw), 2*(qy*qz+qx*qw), 1-2*(qx*qx+qy*qy);
+
+                    // }
+
+
+                    
+                    
+                    // camera_rotation_incremental << 1,0,0,0,1,0,0,0,1;
+                    // current_global_translation = camera_rotation_incremental * current_global_translation + camera_translation_incremental*1000;
+                    // current_global_rotation = camera_rotation_incremental * current_global_rotation;
+                    current_global_translation =  current_global_translation + camera_translation_incremental*1000;
+                    current_global_rotation = camera_rotation_incremental * current_global_rotation;
+                    // std::cout<<"incremental translation"<<camera_translation_incremental<<std::endl;
+                    // std::cout<<"incremental rotation"<<camera_rotation_incremental<<std::endl;
+                //     if (count%2==0){
+                //         rough_search=true;
+                //     }else{
+                //         fine_search=true;
+                //     }             
+                // }else{
+                //     if (count%2==0){
+                //         rough_search=false;
+                //     }else{
+                //         fine_search=false;
+                //     }
+                }
+                // level_index=0;
+                level_index+=5;
+                level_index=level_index%level[count_particle];
+                // const double tx=fabs(mean_transform(0,0))+5e-4;
+                // const double ty=fabs(mean_transform(1,0))+5e-4;
+                // const double tz=fabs(mean_transform(2,0))+5e-4;
+
+                // qx=fabs(qx)+5e-4;
+                // qy=fabs(qy)+5e-4;
+                // qz=fabs(qz)+5e-4;
+
+                const double tx=fabs(mean_transform(0,0))+1e-3;
+                const double ty=fabs(mean_transform(1,0))+1e-3;
+                const double tz=fabs(mean_transform(2,0))+1e-3;
+
+                qx=fabs(qx)+1e-3;
+                qy=fabs(qy)+1e-3;
+                qz=fabs(qz)+1e-3;
+
+
+                // printf("%f %f %f %f %f %f\n",tx,ty,tz,qx,qy,qz);
+
+                // // lens=0.1195 * pow(min_tsdf,1.431);
+
+
+                // }else{
+                //     break;
+                // }
+                // // ratio=1;
+                const double t_norm=sqrt(tx*tx+ty*ty+tz*tz);
+                const double q_norm=sqrt(qx*qx+qy*qy+qz*qz);
+                // if (success){
+                ratio=t_norm/q_norm;        
+                // }
+                if (ratio>5 ){
+                    ratio=5;
+                }else if(ratio<0.2)
+                {
+                    ratio=0.2;
+                }
+
+
+                float q_lens;
+                float t_lens;
+                if (count%2==0 ){
+                    // lens=0.06 * pow(min_tsdf,1.431);
+                    q_lens=(0.06 * min_tsdf+q_norm)/2;
+                    t_lens=(0.06 * min_tsdf+t_norm)/2;
+
+                }else if (count%2==1 ){
+                    // lens=0.16 * pow(min_tsdf,1.431);
+                    q_lens=(0.12 * min_tsdf+q_norm)/2;
+                    t_lens=(0.12 * min_tsdf+t_norm)/2;                
+                }
+                float ratio_root=sqrt(ratio);
+                search_size(0,0)=tx/t_norm*t_lens*ratio_root;
+                search_size(1,0)=ty/t_norm*t_lens*ratio_root;
+                search_size(2,0)=tz/t_norm*t_lens*ratio_root;
+
+
+                search_size(3,0)=qx/q_norm*q_lens/ratio_root;
+                search_size(4,0)=qy/q_norm*q_lens/ratio_root;
+                search_size(5,0)=qz/q_norm*q_lens/ratio_root;
+                
+                
+
+                ++count;
+                std::cout <<"===paricle update"<<1000*(clock()-time_1)/(double)CLOCKS_PER_SEC<<"ms"<<std::endl;
+            }
+            // exit(0);
+            // if (*iter_tsdf>0.3){
+            //     std::cout<<"xxxxxxxxxxxxxxxxxxxxxxx"<<std::endl;
+            //     // exit(0);
+            // }
+            if (count_success==0 ){
+                return false;
+            }
+            pose.block(0, 0, 3, 3) = current_global_rotation;
+            pose.block(0, 3, 3, 1) = current_global_translation;
+            // std::cout<<"success times "<<count_success<<std::endl;
+            std::cout<<"pose: "<<pose<<std::endl;
+            return true;
+        }
+
+        
+    }
+}

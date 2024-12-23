@@ -1,0 +1,74 @@
+%YAML:1.0
+
+#common parameters
+
+imu_topic: "/camera/imu"
+image_topic: "/rgb/image_raw"
+depth_topic: "/camera/depth/image_rect_raw"
+need_compress: 1 # 0 for subscriping compressed image  
+
+result_path: "/home/fjg/test/catkin_dio/catkin_dio/result/"
+name: kinect_dk
+
+
+
+camera_name: camera
+image_width: 640
+image_height: 480
+
+
+#distortion_parameters:
+k1: 0
+k2: 0
+p1: 0
+p2: 0
+
+#projection_parameters:
+fx: 458.34375
+fy: 458.05859375
+cx: 305.296875
+cy: 252.654296875
+
+
+extrinsicRotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [1.0, 0.0, 0.0,
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0]    
+#Translation from camera frame to imu frame, imu^T_cam
+extrinsicTranslation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [0.0124500002712011, -0.0164199993014336, -0.000569999974686652]
+
+
+#Volume parameters
+
+voxel_size: 20
+truncated_size: 60
+voxel_x: 600
+voxel_y: 500
+voxel_z: 800 
+
+init_x: 0
+init_y: 0
+init_z: 1000
+
+#Controller parameters
+render_surface: 1
+PST_path: "/home/fjg/test/catkin_dio/catkin_dio/src/PST/"
+save_trajectory: 1
+save_scene: 1
+
+max_iteration: 18
+scaling_coefficient1: 0.25
+scaling_coefficient2: 0.15
+init_fitness: 0.6
+momentum: 0.9
+scaling_inherit_directly: 0
+
+
+

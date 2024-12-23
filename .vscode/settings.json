@@ -1,0 +1,32 @@
+{
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "aiXcoder.showTrayIcon": true,
+    "python.autoComplete.extraPaths": [
+        "/home/fjg/test/catkin_dio/catkin_dio/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/usr/local/bin"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/fjg/test/catkin_dio/catkin_dio/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/usr/local/bin"
+    ],
+    "cmake.sourceDirectory": "/home/fjg/test/catkin_dio/catkin_dio/src/Azure_Kinect_ROS_Driver-melodic",
+    "files.associations": {
+        "ostream": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp",
+        "functional": "cpp",
+        "*.tcc": "cpp",
+        "mutex": "cpp",
+        "tuple": "cpp",
+        "typeindex": "cpp",
+        "variant": "cpp",
+        "*.txx": "cpp"
+    }
+}
